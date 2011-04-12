@@ -86,6 +86,13 @@
 "   :let g:buftabs_marker_end = ")"       
 "
 "
+" * g:buftabs_marker_modified !
+"
+"   This string is used to denote a modified (unsaved) buffer.
+"
+"   :let g:buftabs_marker_modified = "*"
+"
+"
 " Changelog
 " ---------
 " 
@@ -214,7 +221,7 @@ function! Buftabs_show(deleted_buf)
 			" Append the current buffer number and name to the list. If the buffer
 			" is the active buffer, enclose it in some magick characters which will
 			" be replaced by markers later. If it is modified, it is appended with
-			" an exclaimation mark
+			" an appropriate symbol (an exclamation mark by default)
 
 			if winbufnr(winnr()) == l:i
 				let l:start = strlen(s:list)
@@ -231,8 +238,13 @@ function! Buftabs_show(deleted_buf)
 			let s:list = s:list . l:i . l:buftabs_separator
 			let s:list = s:list . l:name
 
+			let l:buftabs_marker_modified = "!"
+			if exists("g:buftabs_marker_modified")
+				let l:buftabs_marker_modified = g:buftabs_marker_modified
+			endif
+
 			if getbufvar(l:i, "&modified") == 1
-				let s:list = s:list . "!"
+				let s:list = s:list . l:buftabs_marker_modified
 			endif
 			
 			if winbufnr(winnr()) == l:i
