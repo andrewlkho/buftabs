@@ -56,7 +56,13 @@
 "
 "   set laststatus=2
 "   :let g:buftabs_in_statusline=1
-"    
+"
+"   By default buftabs will take up the whole of the left-aligned section of
+"   your statusline. You can alternatively specify precisely where it goes
+"   using %{buftabs#statusline()} e.g.:
+"
+"   set statusline=%=buffers:\ %{buftabs#statusline()}
+"
 "
 " * g:buftabs_active_highlight_group
 " * g:buftabs_inactive_highlight_group
@@ -176,7 +182,7 @@ endf
 function! Buftabs_show(deleted_buf)
 
 	let l:i = 1
-	let l:list = ''
+	let s:list = ''
 	let l:start = 0
 	let l:end = 0
 	if ! exists("w:from") 
@@ -211,10 +217,10 @@ function! Buftabs_show(deleted_buf)
 			" an exclaimation mark
 
 			if winbufnr(winnr()) == l:i
-				let l:start = strlen(l:list)
-				let l:list = l:list . "\x01"
+				let l:start = strlen(s:list)
+				let s:list = s:list . "\x01"
 			else
-				let l:list = l:list . ' '
+				let s:list = s:list . ' '
 			endif
 				
       let l:buftabs_separator = "-"
@@ -222,18 +228,18 @@ function! Buftabs_show(deleted_buf)
         let l:buftabs_separator = g:buftabs_separator
       endif
 
-			let l:list = l:list . l:i . l:buftabs_separator
-			let l:list = l:list . l:name
+			let s:list = s:list . l:i . l:buftabs_separator
+			let s:list = s:list . l:name
 
 			if getbufvar(l:i, "&modified") == 1
-				let l:list = l:list . "!"
+				let s:list = s:list . "!"
 			endif
 			
 			if winbufnr(winnr()) == l:i
-				let l:list = l:list . "\x02"
-				let l:end = strlen(l:list)
+				let s:list = s:list . "\x02"
+				let l:end = strlen(s:list)
 			else
-				let l:list = l:list . ' '
+				let s:list = s:list . ' '
 			endif
 		end
 
@@ -252,7 +258,7 @@ function! Buftabs_show(deleted_buf)
 		let w:from = l:end - l:width 
 	endif
 		
-	let l:list = strpart(l:list, w:from, l:width)
+	let s:list = strpart(s:list, w:from, l:width)
 
 	" Replace the magic characters by visible markers for highlighting the
 	" current buffer. The markers can be simple characters like square brackets,
@@ -277,28 +283,35 @@ function! Buftabs_show(deleted_buf)
 
 	if exists("g:buftabs_inactive_highlight_group")
 		if exists("g:buftabs_in_statusline")
-			let l:list = '%#' . g:buftabs_inactive_highlight_group . '#' . l:list
-			let l:list .= '%##'
+			let s:list = '%#' . g:buftabs_inactive_highlight_group . '#' . s:list
+			let s:list .= '%##'
 			let l:buftabs_marker_end = l:buftabs_marker_end . '%#' . g:buftabs_inactive_highlight_group . '#'
 		end
 	end
 
-	let l:list = substitute(l:list, "\x01", l:buftabs_marker_start, 'g')
-	let l:list = substitute(l:list, "\x02", l:buftabs_marker_end, 'g')
+	let s:list = substitute(s:list, "\x01", l:buftabs_marker_start, 'g')
+	let s:list = substitute(s:list, "\x02", l:buftabs_marker_end, 'g')
 
 	" Show the list. The buftabs_in_statusline variable determines of the list
 	" is displayed in the command line (volatile) or in the statusline
 	" (persistent)
 
 	if exists("g:buftabs_in_statusline")
-		let &l:statusline = l:list . w:original_statusline
+        " Only overwrite the statusline if buftabs#statusline() has not been
+        " used to specify a location
+		if match(&statusline, "%{buftabs#statusline()}") == -1
+			let &l:statusline = s:list . w:original_statusline
+		end
 	else
 		redraw
-		call s:Pecho(l:list)
+		call s:Pecho(s:list)
 	end
 
 endfunction
 
+function! buftabs#statusline(...)
+	return s:list
+endfunction
 
 " Hook to events to show buftabs at startup, when creating and when switching
 " buffers
