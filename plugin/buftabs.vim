@@ -56,7 +56,7 @@
 "
 "   set laststatus=2
 "   :let g:buftabs_in_statusline=1
-"
+"    
 "   By default buftabs will take up the whole of the left-aligned section of
 "   your statusline. You can alternatively specify precisely where it goes
 "   using %{buftabs#statusline()} e.g.:
@@ -75,21 +75,17 @@
 "   :let g:buftabs_active_highlight_group="Visual"
 "
 "
-" * g:buftabs_marker_start   [
-" * g:buftabs_marker_end     ]
-" * g:buftabs_separator      -
+" * g:buftabs_marker_start    [
+" * g:buftabs_marker_end      ]
+" * g:buftabs_separator       -
+" * g:buftabs_marker_modified !
 "
-"   These strings are drawn around each tab as separators.
+"   These strings are drawn around each tab as separators, the 'marker_modified' 
+"   symbol is used to denote a modified (unsaved) buffer.
 "
 "   :let g:buftabs_separator = "."  
 "   :let g:buftabs_marker_start = "("
-"   :let g:buftabs_marker_end = ")"       
-"
-"
-" * g:buftabs_marker_modified !
-"
-"   This string is used to denote a modified (unsaved) buffer.
-"
+"   :let g:buftabs_marker_end = ")"
 "   :let g:buftabs_marker_modified = "*"
 "
 "
@@ -136,12 +132,17 @@
 "                  Fixed wrong buffer display when deleting last window.
 "                  Added extra options for tabs style and highlighting.
 "
-"	0.16 2010-02-28  Fixed bug causing errors when using buftabs in vim
+" 0.16 2010-02-28  Fixed bug causing errors when using buftabs in vim
 "                  diff mode.
 "
 " 0.17 2011-03-11  Changed persistent echo function to restore 'updatetime',
 "                  leading to better behaviour when showing buftabs in the
-"                  status line.
+"                  status line. (Thanks Alex Bradbury)
+"
+" 0.18 2011-03-12  Added marker for denoting modified buffers, provide
+"                  function for including buftabs into status line descriptor
+"                  instead of buftabs having to edit the status line directly.
+"                  (Thanks Andrew Ho)
 "
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
@@ -200,6 +201,26 @@ function! Buftabs_show(deleted_buf)
 		return
 	endif
 
+	let l:buftabs_marker_modified = "!"
+	if exists("g:buftabs_marker_modified")
+		let l:buftabs_marker_modified = g:buftabs_marker_modified
+	endif
+
+	let l:buftabs_separator = "-"
+	if exists("g:buftabs_separator")
+		let l:buftabs_separator = g:buftabs_separator
+	endif
+
+	let l:buftabs_marker_start = "["
+	if exists("g:buftabs_marker_start")
+		let l:buftabs_marker_start = g:buftabs_marker_start
+	endif
+
+	let l:buftabs_marker_end = "]"
+	if exists("g:buftabs_marker_end")
+		let l:buftabs_marker_end = g:buftabs_marker_end
+	endif
+
 	" Walk the list of buffers
 
 	while(l:i <= bufnr('$'))
@@ -230,18 +251,8 @@ function! Buftabs_show(deleted_buf)
 				let s:list = s:list . ' '
 			endif
 				
-      let l:buftabs_separator = "-"
-      if exists("g:buftabs_separator")
-        let l:buftabs_separator = g:buftabs_separator
-      endif
-
 			let s:list = s:list . l:i . l:buftabs_separator
 			let s:list = s:list . l:name
-
-			let l:buftabs_marker_modified = "!"
-			if exists("g:buftabs_marker_modified")
-				let l:buftabs_marker_modified = g:buftabs_marker_modified
-			endif
 
 			if getbufvar(l:i, "&modified") == 1
 				let s:list = s:list . l:buftabs_marker_modified
@@ -275,16 +286,6 @@ function! Buftabs_show(deleted_buf)
 	" Replace the magic characters by visible markers for highlighting the
 	" current buffer. The markers can be simple characters like square brackets,
 	" but can also be special codes with highlight groups
-
-	let l:buftabs_marker_start = "["
-  if exists("g:buftabs_marker_start")
-    let l:buftabs_marker_start = g:buftabs_marker_start
-  endif
-
-	let l:buftabs_marker_end = "]"
-  if exists("g:buftabs_marker_end")
-    let l:buftabs_marker_end = g:buftabs_marker_end
-  endif
   
 	if exists("g:buftabs_active_highlight_group")
 		if exists("g:buftabs_in_statusline")
@@ -309,8 +310,8 @@ function! Buftabs_show(deleted_buf)
 	" (persistent)
 
 	if exists("g:buftabs_in_statusline")
-        " Only overwrite the statusline if buftabs#statusline() has not been
-        " used to specify a location
+		" Only overwrite the statusline if buftabs#statusline() has not been
+		" used to specify a location
 		if match(&statusline, "%{buftabs#statusline()}") == -1
 			let &l:statusline = s:list . w:original_statusline
 		end
@@ -321,12 +322,22 @@ function! Buftabs_show(deleted_buf)
 
 endfunction
 
+
+"
+" Optional function returning the current buftabs list string which can
+" be used inside the statusline string using the %{buftabs#statusline()}
+" syntax
+"
+
 function! buftabs#statusline(...)
 	return s:list
 endfunction
 
+
+"
 " Hook to events to show buftabs at startup, when creating and when switching
 " buffers
+"
 
 autocmd VimEnter * call Buftabs_enable()
 autocmd VimEnter,BufNew,BufEnter,BufWritePost * call Buftabs_show(-1)
